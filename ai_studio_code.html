@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>賃金計算シミュレーター</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Framer Motion -->
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+    </style>
+</head>
+<body class="bg-[#f8fafc] text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+        const { motion, AnimatePresence } = FramerMotion;
+
+        const PRESCRIBED_HOURS = 173.33;
+
+        const Icon = ({ name, size = 24, className = "" }) => {
+            useEffect(() => { lucide.createIcons(); }, [name]);
+            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+        };
+
+        function App() {
+            const [monthlySalary, setMonthlySalary] = useState('');
+            const [overtimeHours, setOvertimeHours] = useState('');
+
+            const hourlyWage = useMemo(() => {
+                const salary = Number(monthlySalary);
+                if (isNaN(salary) || salary <= 0) return 0;
+                return Math.floor(salary / PRESCRIBED_HOURS);
+            }, [monthlySalary]);
+
+            const overtimePay = useMemo(() => {
+                const hours = Number(overtimeHours);
+                if (hourlyWage <= 0 || isNaN(hours) || hours <= 0) return 0;
+                return Math.floor(hourlyWage * 1.25 * hours);
+            }, [hourlyWage, overtimeHours]);
+
+            const totalPay = useMemo(() => {
+                const base = Number(monthlySalary) || 0;
+                return base + overtimePay;
+            }, [monthlySalary, overtimePay]);
+
+            const annualBaseSalary = useMemo(() => (Number(monthlySalary) || 0) * 12, [monthlySalary]);
+            const annualOvertimePay = useMemo(() => overtimePay * 12, [overtimePay]);
+            const annualTotalPay = useMemo(() => totalPay * 12, [totalPay]);
+
+            const formatCurrency = (value) => {
+                return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(value);
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-10">
+                        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-600/20">
+                                    <Icon name="calculator" size={24} />
+                                </div>
+                                <div>
+                                    <h1 className="text-lg font-bold tracking-tight">賃金計算シミュレーター</h1>
+                                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Wage Calculation Simulator</p>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="max-w-4xl mx-auto px-6 py-12 flex-grow w-full">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                            <div className="md:col-span-7 space-y-6">
+                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
+                                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                        <Icon name="clock" size={14} /> 入力項目
+                                    </h2>
+                                    <div className="space-y-6">
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-slate-700">月給の総額 (円)</label>
+                                            <div className="relative">
+                                                <input type="number" value={monthlySalary} onChange={(e) => setMonthlySalary(e.target.value)} placeholder="例: 300000" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-xl font-medium focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none text-slate-900 placeholder:text-slate-300" />
+                                                <span className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">円</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-slate-700">残業時間 (時間) <span className="text-xs font-normal text-slate-400 ml-1">※任意</span></label>
+                                            <div className="relative">
+                                                <input type="number" value={overtimeHours} onChange={(e) => setOvertimeHours(e.target.value)} placeholder="例: 20" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-xl font-medium focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none text-slate-900 placeholder:text-slate-300" />
+                                                <span className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">時間</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-emerald-50 rounded-3xl p-8 border border-emerald-100">
+                                    <h3 className="flex items-center gap-2 text-emerald-700 font-bold mb-4">
+                                        <Icon name="info" size={18} /> 算定根拠について
+                                    </h3>
+                                    <div className="space-y-3 text-sm text-emerald-800/70 leading-relaxed">
+                                        <p>本シミュレーターでは、月平均所定労働時間を <strong className="text-emerald-900">173.33時間</strong> として計算しています。</p>
+                                        <div className="bg-white/50 rounded-xl p-4 font-mono text-xs border border-emerald-100">【算定式】<br />(52週(1年) × 40時間) ÷ 12か月 ≒ 173.33時間</div>
+                                    </div>
+                                </motion.div>
+                            </div>
+
+                            <div className="md:col-span-5 space-y-6">
+                                <AnimatePresence mode="wait">
+                                    {hourlyWage > 0 ? (
+                                        <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-200 sticky top-24">
+                                            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8 flex items-center gap-2">
+                                                <Icon name="trending-up" size={14} /> 計算結果
+                                            </h2>
+                                            <div className="space-y-8">
+                                                <div>
+                                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">基礎賃金 (時給)</p>
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-4xl font-black tracking-tighter text-emerald-600">{formatCurrency(hourlyWage)}</span>
+                                                        <span className="text-sm font-bold text-slate-300">/ 時</span>
+                                                    </div>
+                                                </div>
+                                                {overtimePay > 0 && (
+                                                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4 pt-6 border-t border-slate-100">
+                                                        <div>
+                                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">残業代 (1.25倍)</p>
+                                                            <p className="text-2xl font-bold text-slate-800">{formatCurrency(overtimePay)}</p>
+                                                        </div>
+                                                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">合計支給額 (推定)</p>
+                                                            <p className="text-xl font-bold text-slate-900">{formatCurrency(totalPay)}</p>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                                <div className="pt-6 border-t border-slate-100">
+                                                    <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-4">
+                                                        <span>年間シミュレーション (12ヶ月)</span>
+                                                        <Icon name="trending-up" size={14} />
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-slate-500">年間基本給</span>
+                                                            <span className="font-mono font-bold text-slate-700">{formatCurrency(annualBaseSalary)}</span>
+                                                        </div>
+                                                        {annualOvertimePay > 0 && (
+                                                            <div className="flex justify-between text-sm">
+                                                                <span className="text-slate-500">年間残業代 (推定)</span>
+                                                                <span className="font-mono font-bold text-slate-700">{formatCurrency(annualOvertimePay)}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex justify-between text-base pt-2 border-t border-slate-100">
+                                                            <span className="font-bold text-slate-800">年間総支給額</span>
+                                                            <span className="font-mono font-black text-emerald-600">{formatCurrency(annualTotalPay)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    ) : (
+                                        <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-3xl p-12 shadow-sm border border-dashed border-slate-200 flex flex-col items-center justify-center text-center space-y-4 h-[400px]">
+                                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200"><Icon name="arrow-right" size={32} /></div>
+                                            <p className="text-sm font-medium text-slate-400">月給を入力すると<br />計算結果が表示されます</p>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </div>
+                    </main>
+
+                    <footer className="max-w-4xl mx-auto px-6 py-12 border-t border-slate-200 w-full">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <p className="text-xs text-slate-400 font-medium">&copy; 2024 賃金計算シミュレーター</p>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
